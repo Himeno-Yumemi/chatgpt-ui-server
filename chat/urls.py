@@ -8,7 +8,7 @@ router.register(r'messages', MessageViewSet, basename='messageModel')
 router.register(r'prompts', PromptViewSet, basename='promptModel')
 router.register(r'embedding_document', EmbeddingDocumentViewSet, basename='embeddingDocumentModel')
 router.register(r'settings', SettingViewSet, basename='settingModel')
-
+re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT}, name='static'),
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [

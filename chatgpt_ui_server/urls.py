@@ -16,7 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from chat.views import conversation, gen_title, upload_conversations
-
+from django.conf import settings
+from django.urls import path, include, re_path
+from django.views.static import serve
 urlpatterns = [
     path('api/chat/', include('chat.urls')),
     path('api/conversation/', conversation, name='conversation'),
@@ -24,4 +26,5 @@ urlpatterns = [
     path('api/gen_title/', gen_title, name='gen_title'),
     path('api/account/', include('account.urls')),
     path('admin/', admin.site.urls),
+    re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT}, name='static'),
 ]

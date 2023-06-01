@@ -146,7 +146,7 @@ class EmbeddingDocumentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        my_openai = get_openai(openai_api_key)
+        my_openai = get_openai(openai_api_key,None)
         llm_openai_env(my_openai.api_base, my_openai.api_key)
 
         # Get the uploaded file from the request
@@ -208,6 +208,12 @@ MODELS = {
         'max_tokens': 8192,
         'max_prompt_tokens': 6196,
         'max_response_tokens': 2000
+    },
+    'gpt-3.5-turbo(API)': {
+        'name': 'gpt-3.5-turbo',
+        'max_tokens': 4096,
+        'max_prompt_tokens': 3096,
+        'max_response_tokens': 1000
     }
 }
 
@@ -253,7 +259,7 @@ def gen_title(request):
         {"role": "user", "content": prompt + message.message},
     ]
 
-    my_openai = get_openai(openai_api_key)
+    my_openai = get_openai(openai_api_key,None)
     try:
         openai_response = my_openai.ChatCompletion.create(
             model='gpt-3.5-turbo-0301',
@@ -392,7 +398,7 @@ def conversation(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    my_openai = get_openai(openai_api_key)
+    my_openai = get_openai(openai_api_key,model_name)
     llm_openai_env(my_openai.api_base, my_openai.api_key)
 
     model = get_current_model(model_name, request_max_response_tokens)
@@ -667,8 +673,12 @@ def build_messages(model, user, conversation_id, new_messages, web_search_params
     logger.debug('new message is: %s', new_messages)
     logger.debug('messages are: %s', ordered_messages_list)
     first_msg = True
-
+    num=0
     while current_token_count < max_token_count and len(ordered_messages_list) > 0:
+        num+=1
+        if num>10:
+            num=0
+            break
         message = ordered_messages_list.pop()
         if isinstance(message, Message):
             message = model_to_dict(message)
@@ -828,9 +838,14 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
     return num_tokens
 
 
-def get_openai(openai_api_key):
+def get_openai(openai_api_key,model_name):
     openai.api_key = openai_api_key
-    proxy = os.getenv('OPENAI_API_PROXY')
-    if proxy:
-        openai.api_base = proxy
+    logger.warning("model_name=%s",model_name)
+    if model_name == "gpt-3.5-turbo(API)":
+        openai.api_base = 'https://api.openai.com/v1'
+    elif model_name != None:
+        proxy = os.getenv('OPENAI_API_PROXY')
+        if proxy:
+            logger.warning("proxy=%s",proxy)
+            openai.api_base = proxy
     return openai

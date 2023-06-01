@@ -73,7 +73,7 @@ openai_model = {
 _queue = queue.Queue()
 
 def setup_openai_env(api_base=None, api_key=None):
-    if not openai_env['api_base']:
+    if not openai_env['api_base'] or openai_env['api_base'] != api_base:
         openai_env['api_base'] = api_base
     if not openai_env['api_key']:
         openai_env['api_key'] = api_key
