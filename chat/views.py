@@ -840,12 +840,10 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
 
 def get_openai(openai_api_key,model_name):
     openai.api_key = openai_api_key
-    logger.warning("model_name=%s",model_name)
     if model_name == "gpt-3.5-turbo(API)":
         openai.api_base = 'https://api.openai.com/v1'
     elif model_name != None:
         proxy = os.getenv('OPENAI_API_PROXY')
         if proxy:
-            logger.warning("proxy=%s",proxy)
             openai.api_base = proxy
     return openai

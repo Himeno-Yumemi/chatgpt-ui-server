@@ -1,0 +1,10 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}{% user_display user as user_display %}{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}您收到这封电子邮件是因为用户"{{ user_display }}" 给您的电子邮件地址在{{ site_domain }}上注册了一个帐户.
+如果您没有在我们的网站上注册，可能是别人误用了您的电子邮件地址。请忽略此邮件，我们不会再向您发送任何邮件。
+
+如果您有任何疑问，或者需要进一步的帮助，请随时通过 {{ site_domain }} 与我们联系。
+
+以上均无问题，请点击: {{ activate_url }}{% endblocktrans %}{% endautoescape %}{% endblock %}
