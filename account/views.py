@@ -3,8 +3,11 @@ from rest_framework import status
 from dj_rest_auth.registration.views import RegisterView
 from chat.models import Setting
 from allauth.account import app_settings as allauth_account_settings
-
-
+from django.contrib.auth import get_user_model
+from dj_rest_auth.views import LoginView
+from dj_rest_auth.serializers import LoginSerializer
+from rest_framework import serializers
+User = get_user_model()
 class RegistrationView(RegisterView):
     def create(self, request, *args, **kwargs):
         try:
@@ -33,3 +36,28 @@ class RegistrationView(RegisterView):
             response = Response(status=status.HTTP_204_NO_CONTENT, headers=headers)
 
         return response
+
+class CustomLoginSerializer(LoginSerializer):
+    username = serializers.CharField(required=True)
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        # Check if input is an email address, if so, get the user by email
+        if '@' in username:
+            users = User.objects.filter(email__iexact=username)
+        else:
+            users = User.objects.filter(username__iexact=username)
+
+        if not users or not users[0].check_password(password):
+            raise serializers.ValidationError('Incorrect Email/Username or Password.')
+
+        if not users[0].is_active:
+            raise serializers.ValidationError('User is not active')
+
+        attrs['user'] = users[0]
+        return attrs
+
+
+class CustomLoginView(LoginView):
+    serializer_class = CustomLoginSerializer

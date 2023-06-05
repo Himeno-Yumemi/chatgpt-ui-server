@@ -1,9 +1,10 @@
 from django.urls import path, re_path, include
 from django.views.generic import TemplateView
 from dj_rest_auth.registration.views import VerifyEmailView, ResendEmailVerificationView
-from .views import RegistrationView
+from .views import RegistrationView,CustomLoginView
 
 urlpatterns = [
+    path('login/', CustomLoginView.as_view(), name='rest_login'),
     path('', include('dj_rest_auth.urls')),
     path('registration/', RegistrationView.as_view(), name='rest_register'),
     path('registration/verify-email/', VerifyEmailView.as_view(), name='rest_verify_email_registration'),
