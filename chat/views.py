@@ -649,7 +649,7 @@ def build_messages(model, user, conversation_id, new_messages, web_search_params
         'embedding_message_doc': msg.get('embedding_message_doc', None),
     } for msg in new_messages]
 
-    if frugal_mode:
+    if not frugal_mode:
         ordered_messages_list = ordered_messages_list[-1:]
 
     system_messages = [{"role": "system", "content": system_content}]
