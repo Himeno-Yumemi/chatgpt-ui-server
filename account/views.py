@@ -61,3 +61,12 @@ class CustomLoginSerializer(LoginSerializer):
 
 class CustomLoginView(LoginView):
     serializer_class = CustomLoginSerializer
+    def finalize_response(self, request, response, *args, **kwargs):
+        # 调用父类的方法获取最终的响应对象
+        response = super().finalize_response(request, response, *args, **kwargs)
+
+        # 取消HTTP Only标志
+        if response.cookies.get('auth'):
+            response.cookies['auth']['httponly'] = False
+
+        return response
