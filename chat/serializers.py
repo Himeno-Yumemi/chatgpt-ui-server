@@ -5,12 +5,12 @@ from .models import Conversation, Message, Prompt, EmbeddingDocument, Setting
 class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
-        fields = ['id', 'topic', 'created_at']
+        fields = ['id', 'topic', 'created_at','model']
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'message', 'is_bot', 'message_type', 'embedding_message_doc', 'created_at']
+        fields = ['id', 'message', 'is_bot', 'message_type', 'embedding_message_doc', 'created_at','model']
 
 
 class PromptSerializer(serializers.ModelSerializer):

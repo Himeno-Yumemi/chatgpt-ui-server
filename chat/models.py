@@ -16,7 +16,7 @@ class Conversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     topic = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    model = models.CharField(max_length=255,default="gpt-3.5-turbo(API)")
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
@@ -29,7 +29,7 @@ class Message(models.Model):
     message_type = models.IntegerField(default=0)
     embedding_message_doc = models.ForeignKey(EmbeddingDocument, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    model = models.CharField(max_length=255,default="gpt-3.5-turbo(API)")
     plain_message_type = 0
     hidden_message_type = 1
     temp_message_type = 2

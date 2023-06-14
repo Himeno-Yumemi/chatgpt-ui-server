@@ -231,7 +231,7 @@ def sse_pack(event, data):
 @permission_classes([IsAuthenticated])
 def gen_title(request):
     conversation_id = request.data.get('conversationId')
-    prompt = request.data.get('prompt')
+    prompt = "please summarize the following words in Chinese with no more than ten words used for a title, please include nothing but the title:"
     conversation_obj = Conversation.objects.get(id=conversation_id)
     message = Message.objects.filter(conversation_id=conversation_id).order_by('created_at').first()
     openai_api_key = request.data.get('openaiApiKey')
@@ -259,7 +259,7 @@ def gen_title(request):
         {"role": "user", "content": prompt + message.message},
     ]
 
-    my_openai = get_openai(openai_api_key,None)
+    my_openai = get_openai(openai_api_key,"gpt-3.5-turbo(API)")
     try:
         openai_response = my_openai.ChatCompletion.create(
             model='gpt-3.5-turbo-0301',
@@ -280,6 +280,7 @@ def gen_title(request):
         title = 'Untitled Conversation'
     # update the conversation title
     conversation_obj.topic = title
+    conversation_obj.model = message.model
     conversation_obj.save()
 
     return Response({
@@ -421,24 +422,30 @@ def conversation(request):
         )
 
     def stream_content():
-        try:
-            if messages['renew']:
-                openai_response = my_openai.ChatCompletion.create(
-                    model=model['name'],
-                    messages=messages['messages'],
-                    max_tokens=model['max_response_tokens'],
-                    temperature=temperature,
-                    top_p=top_p,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                    stream=True,
-                )
-        except Exception as e:
-            yield sse_pack('error', {
-                'error': str(e)
-            })
-            print('openai error', e)
-            return
+        max_retry_count = 2
+        retry_count = 0
+
+        while retry_count <= max_retry_count:
+            try:
+                if messages['renew']:
+                    openai_response = my_openai.ChatCompletion.create(
+                        model=model['name'],
+                        messages=messages['messages'],
+                        max_tokens=model['max_response_tokens'],
+                        temperature=temperature,
+                        top_p=top_p,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                        stream=True,
+                    )
+                break  # If the request is successful, break the loop
+            except Exception as e:
+                if "too many messages" in repr(e) and retry_count < max_retry_count:
+                    logger.warning("切换token重试中")
+                    retry_count += 1  # Increment the retry counter
+                else:
+                    yield sse_pack('error', {'error': repr(e)})
+                    return  # If it's another error, or retry count exceeded, stop the function
 
         if conversation_id:
             # get the conversation
@@ -459,7 +466,8 @@ def conversation(request):
                     embedding_doc_id=m.get('embedding_message_doc', 0),
                     messages=messages['messages'],
                     tokens=messages['tokens'],
-                    api_key=api_key
+                    api_key=api_key,
+                    model=model_name
                 )
                 yield sse_pack('userMessageId', {
                     'userMessageId': message_obj.id,
@@ -474,12 +482,14 @@ def conversation(request):
 
         collected_events = []
         completion_text = ''
+        finish_reason=''
         if messages['renew']:  # return LLM answer
             # iterate through the stream of events
             for event in openai_response:
                 collected_events.append(event)  # save the event response
                 # print(event)
                 if event['choices'][0]['finish_reason'] is not None:
+                    finish_reason=event['choices'][0]['finish_reason']
                     break
                 if 'content' in event['choices'][0]['delta']:
                     event_text = event['choices'][0]['delta']['content']
@@ -503,12 +513,14 @@ def conversation(request):
             message_type=bot_message_type,
             is_bot=True,
             tokens=ai_message_token,
-            api_key=api_key
+            api_key=api_key,
+            model=model_name
         )
         yield sse_pack('done', {
             'messageId': ai_message_obj.id,
             'conversationId': conversation_obj.id,
             'newDocId': new_doc_id,
+            'finish_reason':finish_reason
         })
 
     def stream_langchain():
@@ -540,7 +552,8 @@ def conversation(request):
                     embedding_doc_id=m.get('embedding_message_doc', 0),
                     messages=messages['messages'],
                     tokens=messages['tokens'],
-                    api_key=api_key
+                    api_key=api_key,
+                    model=model_name
                 )
                 yield sse_pack('userMessageId', {
                     'userMessageId': message_obj.id,
@@ -576,7 +589,8 @@ def conversation(request):
             message_type=bot_message_type,
             is_bot=True,
             tokens=ai_message_token,
-            api_key=api_key
+            api_key=api_key,
+            model=model_name
         )
         yield sse_pack('done', {
             'messageId': ai_message_obj.id,
@@ -606,7 +620,7 @@ def documents(request):
     pass
 
 
-def create_message(user, conversation_id, message, is_bot=False, message_type=0, embedding_doc_id=None, messages='', tokens=0, api_key=None):
+def create_message(user, conversation_id, message,model, is_bot=False, message_type=0, embedding_doc_id=None, messages='', tokens=0, api_key=None):
     message_obj = Message(
         conversation_id=conversation_id,
         user=user,
@@ -616,6 +630,7 @@ def create_message(user, conversation_id, message, is_bot=False, message_type=0,
         embedding_message_doc=EmbeddingDocument.objects.get(pk=embedding_doc_id) if embedding_doc_id else None,
         messages=messages,
         tokens=tokens,
+        model=model
     )
     if message_type != Message.temp_message_type:
         message_obj.save()

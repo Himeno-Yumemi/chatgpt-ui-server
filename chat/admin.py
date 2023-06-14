@@ -5,12 +5,12 @@ from .models import Conversation, Message, Setting
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'topic', 'created_at')
+    list_display = ('id', 'user', 'topic', 'created_at','model')
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_conversation_topic', 'message', 'is_bot', 'tokens','created_at')
+    list_display = ('id', 'get_conversation_topic', 'message', 'is_bot', 'tokens','created_at','model')
 
     def get_conversation_topic(self, obj):
         return obj.conversation.topic
